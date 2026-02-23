@@ -1,4 +1,4 @@
-public class Main {
+public class Demo6 {
     public static void main(String[] args) {
         System.out.println("=== Notification Demo ===");
         AuditLog audit = new AuditLog();

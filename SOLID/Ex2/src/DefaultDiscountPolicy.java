@@ -1,5 +1,6 @@
-public class DiscountRules {
-    public static double discountAmount(String customerType, double subtotal, int distinctLines) {
+public class DefaultDiscountPolicy implements DiscountPolicy{
+    @Override
+    public double discountAmount(String customerType, double subtotal, int distinctLines){
         // hard-coded policy (smell)
         if ("student".equalsIgnoreCase(customerType)) {
             if (subtotal >= 180.0) return 10.0;

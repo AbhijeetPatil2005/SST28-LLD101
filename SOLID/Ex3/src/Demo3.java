@@ -1,4 +1,4 @@
-public class Main {
+public class Demo3 {
     public static void main(String[] args) {
         System.out.println("=== Placement Eligibility ===");
         StudentProfile s = new StudentProfile("23BCS1001", "Ayaan", 8.10, 72, 18, LegacyFlags.NONE);
