@@ -1,27 +1,41 @@
 public class ClassroomController {
     private final DeviceRegistry reg;
 
-    public ClassroomController(DeviceRegistry reg) { this.reg = reg; }
+    public ClassroomController(DeviceRegistry reg) { 
+        this.reg = reg; 
+    }
 
     public void startClass() {
-        SmartClassroomDevice pj = reg.getFirstOfType("Projector");
-        pj.powerOn();
-        pj.connectInput("HDMI-1");
+        // Projector: needs InputConnectable capability
+        InputConnectable projector = reg.getFirstOfType(InputConnectable.class);
+        Powerable projectorPower = (Powerable) projector;
+        projectorPower.powerOn();
+        projector.connectInput("HDMI-1");
 
-        SmartClassroomDevice lights = reg.getFirstOfType("LightsPanel");
+        // Lights: needs BrightnessControllable capability
+        BrightnessControllable lights = reg.getFirstOfType(BrightnessControllable.class);
         lights.setBrightness(60);
 
-        SmartClassroomDevice ac = reg.getFirstOfType("AirConditioner");
+        // AC: needs TemperatureControllable capability
+        TemperatureControllable ac = reg.getFirstOfType(TemperatureControllable.class);
         ac.setTemperatureC(24);
 
-        SmartClassroomDevice scan = reg.getFirstOfType("AttendanceScanner");
-        System.out.println("Attendance scanned: present=" + scan.scanAttendance());
+        // Scanner: needs AttendanceCapable capability
+        AttendanceCapable scanner = reg.getFirstOfType(AttendanceCapable.class);
+        System.out.println("Attendance scanned: present=" + scanner.scanAttendance());
     }
 
     public void endClass() {
         System.out.println("Shutdown sequence:");
-        reg.getFirstOfType("Projector").powerOff();
-        reg.getFirstOfType("LightsPanel").powerOff();
-        reg.getFirstOfType("AirConditioner").powerOff();
+        
+        // Power down all Powerable devices
+        Powerable projector = (Powerable) reg.getFirstOfType(InputConnectable.class);
+        projector.powerOff();
+        
+        Powerable lights = (Powerable) reg.getFirstOfType(BrightnessControllable.class);
+        lights.powerOff();
+        
+        Powerable ac = (Powerable) reg.getFirstOfType(TemperatureControllable.class);
+        ac.powerOff();
     }
 }
