@@ -1,32 +1,39 @@
 package com.example.metrics;
 
+import java.io.ObjectStreamException;
 import java.io.Serial;
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
+/**
+ * Global metrics registry implemented as a lazy, thread-safe singleton.
+ */
 public class MetricsRegistry implements Serializable {
 
     @Serial
     private static final long serialVersionUID = 1L;
 
-    private static volatile boolean instantiated = false;
     private final Map<String, Long> counters = new HashMap<>();
 
+    // Guard against reflection creating a second instance.
+    private static final AtomicBoolean CONSTRUCTED = new AtomicBoolean(false);
+
     private MetricsRegistry() {
-        if (instantiated) {
-            throw new IllegalStateException("MetricsRegistry is a singleton. Use getInstance().");
+        if (!CONSTRUCTED.compareAndSet(false, true)) {
+            throw new IllegalStateException("MetricsRegistry singleton already created");
         }
-        instantiated = true;
+    }
+
+    // Holder idiom provides lazy initialization with thread safety.
+    private static class Holder {
+        private static final MetricsRegistry INSTANCE = new MetricsRegistry();
     }
 
     public static MetricsRegistry getInstance() {
         return Holder.INSTANCE;
-    }
-
-    private static class Holder {
-        static final MetricsRegistry INSTANCE = new MetricsRegistry();
     }
 
     public synchronized void setCount(String key, long value) {
@@ -46,7 +53,7 @@ public class MetricsRegistry implements Serializable {
     }
 
     @Serial
-    private Object readResolve() {
+    private Object readResolve() throws ObjectStreamException {
         return getInstance();
     }
 }

@@ -1,4 +1,4 @@
-# Ex6 — LSP: Notification Sender Inheritance
+   # Ex6 — LSP: Notification Sender Inheritance
 
 ## 1. Context
 A campus system sends notifications via email, SMS, and WhatsApp.

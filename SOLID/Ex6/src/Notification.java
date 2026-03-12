@@ -1,3 +1,11 @@
+/*
+ * ─── Notification (Value Object / DTO) ───
+ *
+ * WHY THIS CLASS EXISTS:
+ *   Carries notification data (subject, body, email, phone) between layers.
+ *   All senders receive the same Notification type — uniform input.
+ *   Public final fields make it immutable.
+ */
 public class Notification {
     public final String subject;
     public final String body;
