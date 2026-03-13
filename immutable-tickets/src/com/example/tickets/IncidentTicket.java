@@ -4,34 +4,57 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class IncidentTicket {
+/**
+ * INTENTION: A ticket should be an immutable record-like object.
+ *
+ * FIXED:
+ * - all fields are private final (no mutation after construction)
+ * - no public setters
+ * - tags list is wrapped in unmodifiableList (no external leak)
+ * - single private constructor, only called from Builder
+ * - all validation centralized in Builder.build()
+ * - toBuilder() allows creating a modified copy without mutating the original
+ */
+public final class IncidentTicket {
 
     private final String id;
     private final String reporterEmail;
     private final String title;
+
     private final String description;
-    private final String priority;
-    private final List<String> tags;
+    private final String priority; // LOW, MEDIUM, HIGH, CRITICAL
+    private final List<String> tags; // unmodifiable — no external leak
     private final String assigneeEmail;
     private final boolean customerVisible;
-    private final Integer slaMinutes;
-    private final String source;
+    private final Integer slaMinutes; // optional
+    private final String source; // e.g. "CLI", "WEBHOOK", "EMAIL"
 
-    private IncidentTicket(String id, String reporterEmail, String title, String description,
-            String priority, List<String> tags, String assigneeEmail,
-            boolean customerVisible, Integer slaMinutes, String source) {
-        this.id = id;
-        this.reporterEmail = reporterEmail;
-        this.title = title;
-        this.description = description;
-        this.priority = priority;
-        this.tags = tags != null ? new ArrayList<>(tags) : new ArrayList<>();
-        this.assigneeEmail = assigneeEmail;
-        this.customerVisible = customerVisible;
-        this.slaMinutes = slaMinutes;
-        this.source = source;
+    // Only the Builder can construct an IncidentTicket
+    private IncidentTicket(Builder b) {
+        this.id = b.id;
+        this.reporterEmail = b.reporterEmail;
+        this.title = b.title;
+        this.description = b.description;
+        this.priority = b.priority;
+        // defensive copy + unmodifiable so no caller can mutate internal state
+        this.tags = Collections.unmodifiableList(new ArrayList<>(b.tags));
+        this.assigneeEmail = b.assigneeEmail;
+        this.customerVisible = b.customerVisible;
+        this.slaMinutes = b.slaMinutes;
+        this.source = b.source;
     }
 
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    // Returns a Builder pre-filled with this ticket's values so a "modified copy"
+    // can be built
+    public Builder toBuilder() {
+        return Builder.from(this);
+    }
+
+    // Getters — no setters exist
     public String getId() {
         return id;
     }
@@ -53,8 +76,8 @@ public class IncidentTicket {
     }
 
     public List<String> getTags() {
-        return Collections.unmodifiableList(tags);
-    }
+        return tags;
+    } // safe: already unmodifiable
 
     public String getAssigneeEmail() {
         return assigneeEmail;
@@ -70,24 +93,6 @@ public class IncidentTicket {
 
     public String getSource() {
         return source;
-    }
-
-    public static Builder builder() {
-        return new Builder();
-    }
-
-    public Builder toBuilder() {
-        return new Builder()
-                .id(this.id)
-                .reporterEmail(this.reporterEmail)
-                .title(this.title)
-                .description(this.description)
-                .priority(this.priority)
-                .tags(this.tags)
-                .assigneeEmail(this.assigneeEmail)
-                .customerVisible(this.customerVisible)
-                .slaMinutes(this.slaMinutes)
-                .source(this.source);
     }
 
     @Override
@@ -106,25 +111,52 @@ public class IncidentTicket {
                 '}';
     }
 
-    public static class Builder {
+    // -------------------------------------------------------------------------
+    // Builder
+    // -------------------------------------------------------------------------
+    public static final class Builder {
+
+        // Required fields
         private String id;
         private String reporterEmail;
         private String title;
+
+        // Optional fields with sensible defaults
         private String description;
         private String priority;
-        private List<String> tags;
+        private List<String> tags = new ArrayList<>();
         private String assigneeEmail;
         private boolean customerVisible;
         private Integer slaMinutes;
         private String source;
 
+        private Builder() {
+        }
+
+        // Copy all values from an existing ticket — used by toBuilder()
+        public static Builder from(IncidentTicket t) {
+            Builder b = new Builder();
+            b.id = t.id;
+            b.reporterEmail = t.reporterEmail;
+            b.title = t.title;
+            b.description = t.description;
+            b.priority = t.priority;
+            b.tags = new ArrayList<>(t.tags); // mutable copy so we can addTag
+            b.assigneeEmail = t.assigneeEmail;
+            b.customerVisible = t.customerVisible;
+            b.slaMinutes = t.slaMinutes;
+            b.source = t.source;
+            return b;
+        }
+
+        // Fluent setters
         public Builder id(String id) {
             this.id = id;
             return this;
         }
 
-        public Builder reporterEmail(String reporterEmail) {
-            this.reporterEmail = reporterEmail;
+        public Builder reporterEmail(String email) {
+            this.reporterEmail = email;
             return this;
         }
 
@@ -133,8 +165,8 @@ public class IncidentTicket {
             return this;
         }
 
-        public Builder description(String description) {
-            this.description = description;
+        public Builder description(String desc) {
+            this.description = desc;
             return this;
         }
 
@@ -144,22 +176,28 @@ public class IncidentTicket {
         }
 
         public Builder tags(List<String> tags) {
-            this.tags = tags;
+            this.tags = (tags == null) ? new ArrayList<>() : new ArrayList<>(tags);
             return this;
         }
 
-        public Builder assigneeEmail(String assigneeEmail) {
-            this.assigneeEmail = assigneeEmail;
+        public Builder addTag(String tag) {
+            if (tag != null)
+                this.tags.add(tag);
             return this;
         }
 
-        public Builder customerVisible(boolean customerVisible) {
-            this.customerVisible = customerVisible;
+        public Builder assigneeEmail(String email) {
+            this.assigneeEmail = email;
             return this;
         }
 
-        public Builder slaMinutes(Integer slaMinutes) {
-            this.slaMinutes = slaMinutes;
+        public Builder customerVisible(boolean visible) {
+            this.customerVisible = visible;
+            return this;
+        }
+
+        public Builder slaMinutes(Integer sla) {
+            this.slaMinutes = sla;
             return this;
         }
 
@@ -168,24 +206,21 @@ public class IncidentTicket {
             return this;
         }
 
+        // ALL validation is centralized here — single place to enforce all rules
         public IncidentTicket build() {
             Validation.requireTicketId(id);
             Validation.requireEmail(reporterEmail, "reporterEmail");
             Validation.requireNonBlank(title, "title");
             Validation.requireMaxLen(title, 80, "title");
 
-            if (priority != null) {
-                Validation.requireOneOf(priority, "priority", "LOW", "MEDIUM", "HIGH", "CRITICAL");
-            }
-
             if (assigneeEmail != null) {
                 Validation.requireEmail(assigneeEmail, "assigneeEmail");
             }
 
+            Validation.requireOneOf(priority, "priority", "LOW", "MEDIUM", "HIGH", "CRITICAL");
             Validation.requireRange(slaMinutes, 5, 7200, "slaMinutes");
 
-            return new IncidentTicket(id, reporterEmail, title, description, priority, tags,
-                    assigneeEmail, customerVisible, slaMinutes, source);
+            return new IncidentTicket(this);
         }
     }
 }
